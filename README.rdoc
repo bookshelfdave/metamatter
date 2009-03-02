@@ -17,7 +17,7 @@
 #    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 
-0) Whats the deal? 
+== Introduction
 
  * The initial goal:
 
@@ -30,15 +30,18 @@
 	Visually create all sorts of things, ranging from sysadmin to simple web tools. 
 
 
-1) So how does it work?
+== So how does it work?
 
 	The Ruby library isn't really designed to be used by a developer. Rather, a Java based GUI (or at least something platform independent) will allow the developer to visually build a program (or "network"). Clicking a Run button will generate Ruby code on the fly, which will then be run inside of JRuby.
 
 
-2) How much of this works?
+== How much of this works?
    I wrote alot of the GUI for this right after I had surgery on my knee... So, I won't be releasing the GUI code for awhile until I figure out exactly how it works :-) Those painkillers were very nice!
 
 So, at this point, I would just like to work on the Ruby library and make it rock solid before re-implementing the GUI.
+
+== It almost sounds interesting!
+   Then send me an email and give me a hand! Only people with a sense of humor please :-)
 
 Cheers -
 Dave Parfitt

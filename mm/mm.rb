@@ -25,6 +25,8 @@ module MM
   # 1) instantiating the Op doesn't cause it to actually do anything
   # 2) config + default values cannot be null. They need to return a default
   #  value of the correct type
+  
+  # when i get beyond simple tests, this will probably have to be threaded
   class Network
     attr_accessor :ops
     attr_accessor :pipesout
@@ -214,7 +216,7 @@ module MM
     
     # i would like to put these methods somewhere else...
     def Op.listops
-      @@configs.keys.join(input ",")
+      @@configs.keys.join(input, ",")
     end
 
     def Op.getOpInputs(opname)
