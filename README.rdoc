@@ -1,29 +1,12 @@
-#
-#    MetaMatter 
-#    Copyright (C) 2009 Dave Parfitt
-# 
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by`
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-# 
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-# 
-#    You should have received a copy of the GNU General Public License
-#    along with this program; if not, write to the Free Software
-#    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-
 == Introduction
 
  * The initial goal:
 
     Think Max/MSP for developers.
 
-	I would love to be able to visually design simple text-processing programs without writing a line of code. I process a significant amount of SQL and tabular data throughout the day and it seems like the computer should be able to handle more of this for me :-)
+	I would love to be able to visually design simple text-processing programs without 
+writing a line of code. I process a significant amount of SQL and tabular data throughout 
+the day and it seems like the computer should be able to handle more of this for me :-)
 
 
  * The dream:
@@ -32,13 +15,19 @@
 
 == So how does it work?
 
-	The Ruby library isn't really designed to be used by a developer. Rather, a Java based GUI (or at least something platform independent) will allow the developer to visually build a program (or "network"). Clicking a Run button will generate Ruby code on the fly, which will then be run inside of JRuby.
+	The Ruby library isn't really designed to be used by a developer. Rather, a Java
+ based GUI (or at least something platform independent) will allow the developer to visually
+ build a program (or "network"). Clicking a Run button will generate Ruby code on the fly, 
+which will then be run inside of JRuby.
 
 
 == How much of this works?
-   I wrote alot of the GUI for this right after I had surgery on my knee... So, I won't be releasing the GUI code for awhile until I figure out exactly how it works :-) Those painkillers were very nice!
+   I wrote alot of the GUI for this right after I had surgery on my knee... So, I won't be
+releasing the GUI code for awhile until I figure out exactly how it works :-) Those 
+painkillers were very nice!
 
-So, at this point, I would just like to work on the Ruby library and make it rock solid before re-implementing the GUI.
+So, at this point, I would just like to work on the Ruby library and make it rock solid before 
+re-implementing the GUI.
 
 == It almost sounds interesting!
    Then send me an email and give me a hand! Only people with a sense of humor please :-)
