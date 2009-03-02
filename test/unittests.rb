@@ -1,7 +1,7 @@
 #    
 #    MetaMatter
 #    Copyright (C) 2009 Dave Parfitt
-# 
+# Create pipe out as
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation; either version 2 of the License, or
@@ -108,4 +108,14 @@ class TC_Simple < Test::Unit::TestCase
 	assert(s.readline == "a,b,c\n")
   end
   
+
+  def test_pipeout    
+    net = MM::Network.new do
+      foo = create :StartupEcho
+      output = create :PipeOut, "pipeout1"
+      foo.echoout >> output.datain
+    end
+    net.run    
+    assert(net.pipesout[net.getopbytitle("pipeout1").opid].pop == "Foo")
+  end
 end

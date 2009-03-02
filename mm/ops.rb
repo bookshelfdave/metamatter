@@ -33,14 +33,14 @@ class StartupEcho < Op
   config :message
 
   def initialize
-	super
- 	@message = "Foo"	
+    super
+    @message = "Foo"	
   end
-
+  
   def starting
     echoout.out(@message)
   end
-
+  
   def echo(value)
     echoout.out(value)
   end
@@ -51,24 +51,24 @@ class Print < Op
   output :printout 
   config :fd
   config :prefix # couldn't resist even though
-  				 # there should really be an op like "prepend"
- 
+  # there should really be an op like "prepend"
+  
   def initialize
-      super
-      @prefix = ""   
-	  @fd = STDOUT
+    super
+    @prefix = ""   
+    @fd = STDOUT
   end
- 
+  
   def print(value)
     @fd.puts "#{prefix}#{value}"   
     printout.out(value)
   end
-
+  
   def stopping
-	# hmmmm ... what to do about closing FDs?
-	#if @fd != STDOUT then
-  	  #@fd.close
-	#end
+    # hmmmm ... what to do about closing FDs?
+    #if @fd != STDOUT then
+    #@fd.close
+    #end
   end
 end
 
@@ -76,18 +76,18 @@ end
 class Gate < Op
   input :gatein, :valuein
   output :gateout
-
+  
   def initialize
     super()
     @queues = {}   
     @queueorder = []
     @windowsize = 0
   end
-
+  
   def valuein(value)
     #nop-> it's all done in receivedpacket
   end
-
+  
   def receivedpacket(packet)
     if packet.destinput == "valuein"    
       #puts "Gate received a packet from #{packet.sourceoutput}"
@@ -97,7 +97,7 @@ class Gate < Op
       end
     end
   end
-
+  
   def windowfull
     count = 0
     @queues.each_pair do |conn,q|
@@ -111,7 +111,7 @@ class Gate < Op
       false
     end
   end
-
+  
   def gatefull
     values = []
     @queueorder.each do |key|   
@@ -121,7 +121,7 @@ class Gate < Op
     #puts "Gate is releasing a packet: #{values}"
     gateout.out values   
   end
-
+  
   def connectedto(output)   
     @queueorder << output
     @queues[output] = Array.new
@@ -137,16 +137,16 @@ class If < Op
   input :ifin, :doif
   output :ifouttrue
   output :ifoutfalse
-   
+  
   def initialize
     super
     @predicate = 'not value.nil?'
   end
-   
+  
   def doif(value)   
     s = "#{predicate}"           
     result = instance_eval(s)
-   
+    
     if result == true           
       ifouttrue.out value
     else     
@@ -161,29 +161,29 @@ class TextTemplate < Op
   input :valuesin, :rendertemplate
   input :templatein, :template
   output :templateout
-
+  
   def initialize
     super
     @template = '#{value}'
   end
- 
+  
   def rendertemplate(value)       
     s = instance_eval('"' + @template + '"')
     templateout.out(s) 
   end
-       
+  
 end
 
 class Join < Op
   input :joinin, :dojoin
   output :joinout
   config :joinchar
-
+  
   def initialize
     super
     @joinchar = ","
   end
-
+  
   def dojoin(value)  
     joinout.out value.to_a.join(@joinchar)
   end
@@ -193,12 +193,12 @@ class Split < Op
   input :splitin, :dosplit
   output :splitout
   config :splitchar
-
+  
   def initialize
     super
     @splitchar = ","
   end
-
+  
   def dosplit(value)    
     splitout.out value.to_s.split(@splitchar)
   end
@@ -209,12 +209,12 @@ class Mod < Op
   input :modin, :mod
   output :modout
   config :code
- 
+  
   def initialize
     super
     @code = ""
   end
-
+  
   def mod(value)
     modout.out(instance_eval(@code))
   end
@@ -224,11 +224,27 @@ end
 class Each < Op
   input :eachin, :doeach
   output :eachout
-
+  
   def doeach(value)
     value.to_a.each do |item|
       eachout.out(item)
     end
+  end
+end
+
+# first try... not thread safe or actually safe at all yet,
+# just wanted to do a proof of concept type thing
+# I would like to use something as easy as this to get data TO Java 
+# (something like a textarea on the screen)
+class PipeOut < Op
+  input :datain, :dodatain
+  
+  def starting    
+    @network.pipesout[self.opid] = Array.new()
+  end
+  
+  def dodatain(value)
+    @network.pipesout[self.opid] << value
   end
 end
 
