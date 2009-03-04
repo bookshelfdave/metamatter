@@ -213,7 +213,11 @@ module MM
       end
       @packets = []
     end
-    
+       
+    def acceptsnil?
+      false
+    end
+
     # i would like to put these methods somewhere else...
     def Op.listops
       @@configs.keys.join(input, ",")
@@ -281,7 +285,7 @@ module MM
     # it to the correct method in the op
     def processpacket
       packet = @packets.shift	      
-      if packet != nil
+      if packet != nil or (packet== nil and acceptsnil?)
         self.send(packet.destinput, packet.value)	    
         receivedpacket(packet)
       end
