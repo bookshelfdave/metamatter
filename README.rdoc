@@ -10,12 +10,15 @@
  * The dream:
   Visually create all sorts of things, ranging from sysadmin to simple web tools. 
 
-== How much of this works?
+== Status
  I wrote alot of the GUI in Java right after I had surgery on my knee... Those 
  painkillers were very nice, but I can't figure out how my code works :-)
 
  I've been playing around a bit with WxRuby, and it seems to work pretty well. I will
  probably end up using it for the GUI instead of Java.
+
+ At the moment, only a small number of operators exist. Once I get the GUI going, I plan
+ on adding a whole bunch (DB ops, filesystem ops, networks & http ops).
 
 == It almost sounds interesting!
    ...then send me an email and give me a hand! Only people with a sense of humor please :-)
