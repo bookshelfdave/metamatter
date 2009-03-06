@@ -31,10 +31,10 @@ class TC_Simple < Test::Unit::TestCase
   def test_simple
 	s = StringIO.new()
 	net = MM::Network.new do
-  		foo = create :StartupEcho
+  		foo = create :Init
   		output = create :Print
   		output.fd = s
-  		foo.echoout >> output.printin
+  		foo.initout >> output.printin
 	end
 	net.run
 	s.rewind
@@ -44,8 +44,8 @@ class TC_Simple < Test::Unit::TestCase
   def test_gate1
 	s = StringIO.new()
 	net = MM::Network.new do
-  	foo1 = create :StartupEcho
-  		foo2 = create :StartupEcho
+  	foo1 = create :Init
+  		foo2 = create :Init
 		gate = create :Gate
 		output = create :Print
 		join = create :Join
@@ -55,8 +55,8 @@ class TC_Simple < Test::Unit::TestCase
 		foo1.message = "Foo1"
 		foo2.message = "Foo2"
 
-		foo1.echoout >> gate.gatein
-		foo2.echoout >> gate.gatein
+		foo1.initout >> gate.gatein
+		foo2.initout >> gate.gatein
 		gate.gateout >> join.joinin
 		join.joinout >> output.printin
 	end
@@ -68,9 +68,9 @@ class TC_Simple < Test::Unit::TestCase
   def test_gate2
 	s = StringIO.new()
 	net = MM::Network.new do
-  		echo1= create :StartupEcho
-  		echo2 = create :StartupEcho
-  		echo3= create :StartupEcho
+  		echo1= create :Init
+  		echo2 = create :Init
+  		echo3= create :Init
 
 		gate = create :Gate
 		output = create :Print
@@ -82,20 +82,20 @@ class TC_Simple < Test::Unit::TestCase
 		echo2.message = "b"
 		echo3.message = "c"
 
-		echo1.echoin.queue("a")
-		echo1.echoin.queue("a")
-		echo2.echoin.queue("b")
-		echo3.echoin.queue("c")
-		echo3.echoin.queue("c")
-		echo3.echoin.queue("c")
+		echo1.initin.queue("a")
+		echo1.initin.queue("a")
+		echo2.initin.queue("b")
+		echo3.initin.queue("c")
+		echo3.initin.queue("c")
+		echo3.initin.queue("c")
 
-		echo1.echoin.queue("a")
-		echo2.echoin.queue("b")
-		echo2.echoin.queue("b")
+		echo1.initin.queue("a")
+		echo2.initin.queue("b")
+		echo2.initin.queue("b")
 
-		echo1.echoout >> gate.gatein
-		echo2.echoout >> gate.gatein
-		echo3.echoout >> gate.gatein
+		echo1.initout >> gate.gatein
+		echo2.initout >> gate.gatein
+		echo3.initout >> gate.gatein
 		gate.gateout >> join.joinin
 		join.joinout >> output.printin
 	end
@@ -110,9 +110,9 @@ class TC_Simple < Test::Unit::TestCase
 
   def test_pipeout    
     net = MM::Network.new do
-      foo = create :StartupEcho
+      foo = create :Init
       output = create :PipeOut, "pipeout1"
-      foo.echoout >> output.datain
+      foo.initout >> output.datain
     end
     net.run    
     assert(net.pipesout[net.getopbytitle("pipeout1").opid].pop == "Foo")
@@ -120,12 +120,12 @@ class TC_Simple < Test::Unit::TestCase
 
   def test_pipeout2
     net = MM::Network.new do
-      foo = create :StartupEcho
+      foo = create :Init
       output = create :PipeOut, "pipeout1"
-      foo.echoin.queue("1")
-      foo.echoin.queue("2")
-      foo.echoin.queue("3")
-      foo.echoout >> output.datain
+      foo.initin.queue("1")
+      foo.initin.queue("2")
+      foo.initin.queue("3")
+      foo.initout >> output.datain
     end
     net.run    
     assert(net.pipesout[net.getopbytitle("pipeout1").opid].shift == "Foo")

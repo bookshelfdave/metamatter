@@ -27,9 +27,9 @@ module MM
 
 
 # might want to rethink this class
-class StartupEcho < Op
-  input :echoin, :echo
-  output :echoout
+class Init < Op
+  input :initin, :echo
+  output :initout
   config :message
 
   def initialize
@@ -38,11 +38,11 @@ class StartupEcho < Op
   end
   
   def starting
-    echoout.out(@message)
+    initout.out(@message)
   end
   
   def echo(value)
-    echoout.out(value)
+    initout.out(value)
   end
 end
 

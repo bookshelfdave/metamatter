@@ -223,6 +223,10 @@ module MM
       @@configs.keys.join(input, ",")
     end
 
+    def Op.getopnames
+      @@configs.keys
+    end
+
     def Op.getOpInputs(opname)
       @@configs[opname].inputs.keys.join(",")
     end
