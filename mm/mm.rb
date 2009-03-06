@@ -18,8 +18,6 @@
 
 
 module MM
-
-  #need to fixup tabs/whitespace in this file
   
   # rules for ops:
   # 1) instantiating the Op doesn't cause it to actually do anything
@@ -31,12 +29,26 @@ module MM
     attr_accessor :ops
     attr_accessor :pipesout
     attr_accessor :pipesin
-
-    def initialize(&block)
+        
+    def initialize
       @ops = {}
       @pipesout = {}      
-      @pipesin = {}      
-      instance_eval(&block)    
+      @pipesin = {}            
+    end
+    
+    def exec(&block)
+        instance_eval(&block)    
+    end
+
+    def add(opinstance)
+      opinstance.network = self
+      opinstance.setupio
+      @ops[opinstance.opid] = opinstance
+      opinstance
+    end
+
+    def remove(opinstance)
+      @ops.delete(opinstance)
     end
     
     def create(opname,title="none")
@@ -46,10 +58,11 @@ module MM
       op.network = self
       @ops[op.opid] = op
       op.setupio
-      return op
+      op
     end
 
     def run
+
       @ops.values.each do |op|
         op.starting
       end
@@ -203,40 +216,51 @@ module MM
       #to create an instance of the op, iterate through the list of inputs
       #and outputs and create them dynamically
       ios.inputs.each_pair do |name,pro|
-        #puts "Init input #{name}"
+        puts "Init input #{name}"
         s = "@#{name} = Input.new(self,\"#{name}\",\"#{pro}\")"	  
         instance_eval s
       end
       ios.outputs.keys.each do |name|
+        puts "Init output #{name}"
         s = "@#{name} = Output.new(self,\"#{name}\")"	
         instance_eval s
       end
       @packets = []
     end
-       
+
+    def getopname
+      self.class.name[4..-1]
+    end
+    
     def acceptsnil?
       false
     end
 
     # i would like to put these methods somewhere else...
-    def Op.listops
-      @@configs.keys.join(input, ",")
+
+    def Op.getopnames      
+      @@configs.keys.map do |val|
+        "#{val.to_s}"
+      end
     end
 
-    def Op.getopnames
-      @@configs.keys
+    # i don't think i need the static methods anymore since
+    # i'm not accessing from java
+    def definedconfigs
+      @@configs[self.class].configs
     end
 
+    
     def Op.getOpInputs(opname)
-      @@configs[opname].inputs.keys.join(",")
+      @@configs[opname].inputs.keys
     end
 
     def Op.getOpOutputs(opname)
-      @@configs[opname].outputs.keys.join(",")
+      @@configs[opname].outputs.keys
     end
 
     def Op.getOpConfigs(opname)
-      @@configs[opname].configs.keys.join(",")
+      @@configs[opname].configs.keys
     end
 
     def Op.getOpConfigDefaultValueAndType(opname,attname)

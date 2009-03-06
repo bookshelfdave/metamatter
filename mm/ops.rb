@@ -16,7 +16,7 @@
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-
+require "DBI"
 module MM
 ###############################################################################
 #
@@ -226,16 +226,14 @@ class Each < Op
   output :eachout
   
   def doeach(value)
+    puts "EACH: #{value}"
     value.to_a.each do |item|
       eachout.out(item)
     end
   end
 end
 
-# first try... not thread safe or actually safe at all yet,
-# just wanted to do a proof of concept type thing
-# I would like to use something as easy as this to get data TO Java 
-# (something like a textarea on the screen)
+# probably not going to use this
 class PipeOut < Op
   input :datain, :dodatain
   
@@ -246,6 +244,42 @@ class PipeOut < Op
   def dodatain(value)
     @network.pipesout[self.opid] << value
   end
+end
+
+# need to spit out db metadata also!
+class DBQuery < Op
+  input :sql, :runsql
+  output :queryout
+  config :username
+  config :password
+  config :connstr
+  
+  def initialize
+    super
+    @username=""
+    @password=""
+    @connstr="DBI:OCI8:sid"
+  end
+
+  def starting
+    puts "DB connect"
+    puts "username = [#{@username}"
+    puts "password = [#{@password}"
+    puts "connstr = [#{@connstr}"
+    @dbh=DBI.connect(@connstr,@username,@password)
+  end
+
+  def stopping
+    puts "DB disconnect"
+    @dbh.disconnect
+  end
+
+  def runsql(value)   
+    results = @dbh.select_all(value)
+    queryout.out(results)
+  end
+
+
 end
 
 
