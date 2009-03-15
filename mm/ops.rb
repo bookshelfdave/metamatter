@@ -16,7 +16,11 @@
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-require "DBI"
+require 'rubygems'
+gem 'dbi'
+require 'dbi'
+
+
 module MM
 ###############################################################################
 #
@@ -43,6 +47,27 @@ class Init < Op
   
   def echo(value)
     initout.out(value)
+  end
+end
+
+class DummyTable < Op
+  input :dummyin, :din
+  output :dummyout
+  
+  def starting    
+    data = []
+    1.upto(10) do |i|      
+      row = []
+      1.upto(10) do |j|
+        row << j
+      end
+      data << row      
+    end
+       
+    @dummyout.out(data)
+  end
+      
+  def din    
   end
 end
 
@@ -224,47 +249,97 @@ end
 class Each < Op
   input :eachin, :doeach
   output :eachout
-  
+  output :eof
+
   def doeach(value)
     puts "EACH: #{value}"
+
     value.to_a.each do |item|
       eachout.out(item)
     end
+    eof.out("eof")
   end
 end
+
+
+class EachPair < Op
+  input :eachin, :doeach
+  output :eachout
+  output :eof
+
+  def doeach(value)
+    puts "EACH: #{value}"
+    
+    value.each_pair do |k,v|
+      eachout.out(item)
+    end
+    eof.out("eof")
+  end
+end
+
+class Buffer < Op
+  input :bufferin, :doin
+  input :trigger, :dotrigger
+  output :bufferout
+    
+  def initialize
+    super
+    @buf = Array.new
+  end
+  
+  def doin(value)
+    @buf << value
+  end
+  
+  def dotrigger(value)    
+    bufferout.out(@buf.clone)
+    @buf.clear
+  end
+
+end
+
 
 # probably not going to use this
-class PipeOut < Op
-  input :datain, :dodatain
+# class PipeOut < Op
+#   input :datain, :dodatain
   
-  def starting    
-    @network.pipesout[self.opid] = Array.new()
-  end
+#   def starting    
+#     @network.pipesout[self.opid] = Array.new()
+#   end
   
-  def dodatain(value)
-    @network.pipesout[self.opid] << value
-  end
-end
+#   def dodatain(value)
+#     @network.pipesout[self.opid] << value
+#   end
+# end
+
+
 
 # need to spit out db metadata also!
+# should probably pass around the db connection?
+# need a way to manage resources (open + close things like files, db connections etc)
 class DBQuery < Op
   input :sql, :runsql
-  output :queryout
+  output :rowout
+
+  output :metadataout
+  output :rowcountout
+  output :colcountout #redundant
+  output :columnnames 
+  output :eof
+  
   config :username
   config :password
   config :connstr
-  
+
   def initialize
     super
-    @username=""
+    @username="root"
     @password=""
-    @connstr="DBI:OCI8:sid"
+    @connstr="DBI:Mysql:ub"
   end
 
   def starting
     puts "DB connect"
-    puts "username = [#{@username}"
-    puts "password = [#{@password}"
     puts "connstr = [#{@connstr}"
     @dbh=DBI.connect(@connstr,@username,@password)
   end
@@ -275,11 +350,18 @@ class DBQuery < Op
   end
 
   def runsql(value)   
-    results = @dbh.select_all(value)
-    queryout.out(results)
+    results = @dbh.execute(value)
+    rowcount = 0
+    results.each do |row|
+      rowout.out(row)
+      rowcount += 1
+    end
+    rowcountout.out(rowcount)
+    colcountout.out(results.column_names.size)
+    metadataout.out(results.column_info)
+    columnnames.out(results.column_names)
+    eof.out("eof")
   end
-
-
 end
 
 

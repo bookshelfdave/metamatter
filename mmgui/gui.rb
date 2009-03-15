@@ -1,11 +1,13 @@
+require "rubygems"
 require "wx"
 require "mm/mm.rb"
+require "mmgui/guiops.rb"
 
 class MMWin < Wx::Frame
   
   def initialize    
     super(nil, -1, "Metamatter",Wx::DEFAULT_POSITION,Wx::Size.new(800,600))      
-    
+    puts "Double buffering = #{self.is_double_buffered}"
     @network = MM::Network.new
     @loadedops = MM::Op.getopnames.sort
     
@@ -37,8 +39,10 @@ class MMWin < Wx::Frame
       end 
     end
     evt_key_up() {|event| @shiftdown=false }
-  end  
+    #evt_erase_background() { | event | event.skip() }
 
+  end  
+  
   def on_left_dclick(event)
     @clickedop = @visops.find { |op| op.rect.contains(event.get_x, event.get_y) }
     if not @clickedop.nil?
@@ -58,14 +62,25 @@ class MMWin < Wx::Frame
       @draggingop.rect.x = event.get_x - @dragoffx -2 
       @draggingop.rect.y = event.get_y - @dragoffy -2
 
-      # will accept flicker for now :-)
-      refresh
-
-      #biggerrect = Wx::Rect.new(@draggingop.rect.x, @draggingop.rect.y, 
-      #                           @draggingop.rect.width+2, @draggingop.rect.height+2)
-      #refresh_rect(@oldrect,true)
-      #refresh_rect(@draggingop.rect,true)
-      #refresh_rect(biggerrect,true)
+      # need to think this through... 
+      # will accept flicker for now :-)      
+      @visconns.each do |conn|
+        if conn.dest_visop == @draggingop 
+          #conn.repaint = true
+        elsif conn.source_visop == @draggingop               
+          #conn.repaint = true
+        end
+      end
+      #peers.reject! {|item| item.nil?}     
+      peers = Array.new
+      peers << @draggingop.rect
+      peers << @oldrect
+      minx = peers.collect { |rect| rect.x }.min
+      maxx = peers.collect { |rect| rect.x + rect.width }.max
+      miny = peers.collect { |rect| rect.y }.min
+      maxy = peers.collect { |rect| rect.y + rect.height }.max                                   
+      fillrect = Wx::Rect.new(minx-3,miny-3,maxx+3,maxy+3)
+      refresh_rect(fillrect)      
     end
   end
   
@@ -84,10 +99,14 @@ class MMWin < Wx::Frame
   end
   
   def on_left_down(event)
-    #puts "Left down: #{event.get_x} #{event.get_y}"
     @clickedop = @visops.find { |op| op.rect.contains(event.get_x, event.get_y) }
     if not @clickedop.nil?
       @draggingop = @clickedop 
+      
+      # pull the current op to the front
+      @visops.delete(@draggingop)
+      @visops <<  @draggingop
+
       @dragoffx = event.get_x - @draggingop.rect.x
       @dragoffy = event.get_y - @draggingop.rect.y
       if @selectlist.size >= 1 and @shiftdown
@@ -111,6 +130,7 @@ class MMWin < Wx::Frame
     # a little bit of flicker moving around ops. need double buffering code,
     # but not sure how to do it in wx yet
     rect = self.get_client_size    
+    # paint_buffered... 
     paint do |dc|
       gdc = Wx::GraphicsContext.create(dc)      
 
@@ -121,10 +141,8 @@ class MMWin < Wx::Frame
       @visconns.each do |vc|
         sourcex = vc.source_visop.rect.x + vc.source_visop.rect.width/2
         sourcey = vc.source_visop.rect.y + vc.source_visop.rect.height/2
-
         destx = vc.dest_visop.rect.x + vc.dest_visop.rect.width/2
-        desty = vc.dest_visop.rect.y + vc.dest_visop.rect.height/2
-                  
+        desty = vc.dest_visop.rect.y + vc.dest_visop.rect.height/2                  
         gdc.stroke_line(sourcex, sourcey, destx, desty)
       end
       
@@ -142,10 +160,11 @@ class MMWin < Wx::Frame
 
         gdc.set_pen(Wx::WHITE_PEN)
         gdc.set_brush(Wx::BLACK_BRUSH)  
-        
+
         font = gdc.create_font(Wx::Font.new(8, Wx::SWISS, Wx::NORMAL, Wx::NORMAL))
         gdc.set_font(font)                        
-        gdc.draw_text(visop.op.getopname, r.x+3, r.y+3)                
+        gdc.draw_text(visop.op.getopid, r.x+3, r.y+3)                
+        
       end            
 
 
@@ -155,8 +174,11 @@ class MMWin < Wx::Frame
   def setup_menubar
     menuBar = Wx::MenuBar.new()
     fileMenu = Wx::Menu.new()
-    fileMenu.append(Wx::ID_EXIT,"Exit")
+
     menuBar.append(fileMenu,"File")
+    save = fileMenu.append(-1,"Save")
+    load = fileMenu.append(-1,"Load")
+    fileMenu.append(Wx::ID_EXIT,"Exit")
     
     networkMenu = Wx::Menu.new()
     start = networkMenu.append(-1,"Start")
@@ -169,9 +191,12 @@ class MMWin < Wx::Frame
     evt_menu(Wx::ID_EXIT) { |event| exit }
     evt_menu(start.get_id) { |event| start_network }
     evt_menu(stop.get_id) { |event| stop_network } 
-    
-  end
 
+    evt_menu(save.get_id) { |event| save_network }
+    evt_menu(load.get_id) { |event| load_network }
+  end
+  
+  
   def setup_opinstmenu
     @opinstmenu = Wx::Menu.new("Op")
     delete = @opinstmenu.append(-1,"Delete")
@@ -220,6 +245,7 @@ class MMWin < Wx::Frame
           s = "source.#{output} >> dest.#{input}"          
           instance_eval s   
           @visconns << VisConn.new(@selectlist[0],@selectlist[1],output,input)
+          refresh
         end
       end
     end
@@ -236,6 +262,29 @@ class MMWin < Wx::Frame
     puts "Stopping network doesn't work :-("
     
   end
+
+
+  def save_network
+    File.open('c:\foo.m','w+') do |f|
+      ops = @visops.collect  do |vop| 
+        r = [vop.rect.x,vop.rect.y,vop.rect.width,vop.rect.height]
+        [vop.op,r]
+      end      
+      Marshal.dump(ops,f)
+      
+    end
+  end
+  
+  def load_network
+    File.open('c:\foo.m') do |f|
+      data = Marshal.load(f)
+      data.each do |val|
+        (op,r) = val
+        @visops << VisOp.new(op,Wx::Rect.new(r[0],r[1],r[2],r[3]))
+      end
+    end
+  end
+  
 end
 
 class MMGui < Wx::App  
@@ -248,27 +297,34 @@ end
 class MMOpConfigFrame < Wx::Frame
   attr_accessor :visop
   def initialize(visualop)
-    super(nil, -1, "Opconfig",Wx::DEFAULT_POSITION,Wx::Size.new(200,200))      
+    super(nil, -1, visualop.op.getopid,Wx::DEFAULT_POSITION,Wx::Size.new(500,300),
+          Wx::FRAME_TOOL_WINDOW | Wx::RESIZE_BORDER| Wx::SYSTEM_MENU|Wx::CAPTION|Wx::CLOSE_BOX|Wx::CLIP_CHILDREN)
+    set_background_colour(Wx::LIGHT_GREY)
     @visop = visualop
     
-    configs = @visop.op.definedconfigs
-    sizer= Wx::FlexGridSizer.new(configs.keys.size,2,2,2)
-    sizer.add_growable_col(1)
-    configs.keys.each do |k|
-      value=@visop.op.send(k)     
-      label = Wx::StaticText.new(self,-1,k.to_s)
-      tc = Wx::TextCtrl.new(self,-1,value)      
-      sizer.add(label, 0, Wx::ALIGN_LEFT, 2)      
-      sizer.add(tc, 1, Wx::GROW|Wx::ALL, 2)      
-      evt_text(tc.get_id) { |event | @visop.op.send(k.to_s+"=",event.get_string) }
-      
+    configs = @visop.op.allconfigs
+    sizer= Wx::GridSizer.new(configs.keys.size,2,2,2)
+    #sizer.add_growable_col(1)
+    if configs.keys.size == 0 then
+      label = Wx::StaticText.new(self,-1,"No parameters available")
+      sizer.add(label,1,Wx::GROW|Wx::ALL,2)
+    else       
+      configs.keys.each do |k|
+        value=@visop.op.send(k)     
+        if not value.nil? then 
+          label = Wx::StaticText.new(self,-1,k.to_s.capitalize)
+          tc = Wx::TextCtrl.new(self,-1,value,Wx::DEFAULT_POSITION, Wx::DEFAULT_SIZE,Wx::TE_MULTILINE)
+          sizer.add(label, 0, Wx::ALIGN_CENTER | Wx::GROW|Wx::ALL, 2)      
+          sizer.add(tc, 1, Wx::GROW|Wx::ALL, 2)      
+          evt_text(tc.get_id) { |event | @visop.op.send(k.to_s+"=",event.get_string) }
+        end
+      end
     end
     set_sizer(sizer)
     
-    
+
   end
-  
-  
+   
 end
 
 
@@ -279,21 +335,24 @@ class VisOp
   def initialize(operator, rectangle)
     @op = operator
     @rect = rectangle
-  end
+  end  
 end
 
 class VisConn
   attr_accessor :source_visop
   attr_accessor :source_output
-
+  
   attr_accessor :dest_visop
   attr_accessor :dest_input
 
+  #attr_accessor :repaint
+  
   def initialize(source, dest, output, input)
     @source_visop = source
     @dest_visop = dest
     @source_output = output
     @dest_input = input
+    #@repaint = true
   end
 end
 

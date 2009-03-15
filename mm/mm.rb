@@ -62,11 +62,14 @@ module MM
     end
 
     def run
+      begin
+        @ops.values.each do |op|        
+          op.starting
+        end
+      rescue StandardError => boom
+        puts "Error starting network: #{boom}"
+      end        
 
-      @ops.values.each do |op|
-        op.starting
-      end
-      
       @stophack = 0
       running = true
       while running
@@ -82,9 +85,13 @@ module MM
         end
       end
 
-      @ops.values.each do |op|
-        op.stopping
-      end
+      begin
+        @ops.values.each do |op|
+          op.stopping
+        end
+      rescue StandardError => boom
+        puts "Error starting network: #{boom}"
+      end        
     end
 
     def steponceinit
@@ -147,6 +154,7 @@ module MM
     attr_accessor :outputs
     attr_accessor :configs
 
+
     def initialize
       @inputs  = {}
       @outputs = {}
@@ -205,10 +213,12 @@ module MM
     attr_accessor :packets
     attr_accessor :title
     attr_accessor :network
-    attr_accessor :opid
+    attr_reader   :opid
+    attr_reader   :errors
 
-    def initialize
+    def initialize      
       ios = @@configs[self.class]
+      ios.outputs["errors"]=1      
 
       @opid = @@opidcounter
       @@opidcounter += 1
@@ -229,7 +239,12 @@ module MM
     end
 
     def getopname
+      # probably a method in Class that i haven't found or looked for yet
       self.class.name[4..-1]
+    end
+    
+    def getopid
+      "#{getopname}:#{@opid}"
     end
     
     def acceptsnil?
@@ -246,23 +261,34 @@ module MM
 
     # i don't think i need the static methods anymore since
     # i'm not accessing from java
-    def definedconfigs
+    def allconfigs
       @@configs[self.class].configs
     end
 
-    
-    def Op.getOpInputs(opname)
-      @@configs[opname].inputs.keys
+    #todo: rename + cleanup
+     def Op.getOpInputs(opname)
+       @@configs[opname].inputs.keys
+     end
+
+    def alloutputs
+      @@configs[self.class].outputs.keys
     end
 
+    def allinputs
+      @@configs[self.class].inputs.keys
+    end
+
+    #todo: rename + cleanup
     def Op.getOpOutputs(opname)
       @@configs[opname].outputs.keys
     end
 
+    #todo: rename + cleanup
     def Op.getOpConfigs(opname)
       @@configs[opname].configs.keys
     end
 
+    #todo: rename + cleanup
     def Op.getOpConfigDefaultValueAndType(opname,attname)
       v = instance_eval(opname.to_s + ".new()." + attname.to_s)
       return [v,v.class.name]
@@ -286,6 +312,7 @@ module MM
       ios = @@configs[self]
       ios.inputs[name]=proc
     end
+    
 
     # used to define an output in the class definition
     def Op.output(name)	    
@@ -314,7 +341,15 @@ module MM
     def processpacket
       packet = @packets.shift	      
       if packet != nil or (packet== nil and acceptsnil?)
-        self.send(packet.destinput, packet.value)	    
+        begin
+          self.send(packet.destinput, packet.value)	    
+        rescue StandardError => boom
+          puts "#{boom}"
+          puts "Invalid packet: [#{packet}]"
+          errors.out(boom)
+        end
+        
+        
         receivedpacket(packet)
       end
     end
@@ -338,6 +373,11 @@ module MM
 
     #override  me if you like
     def setupio
+    end
+
+    #override  me if you like
+    def errorhandler(value)
+      puts "Error: #{value}"
     end
   end
 
